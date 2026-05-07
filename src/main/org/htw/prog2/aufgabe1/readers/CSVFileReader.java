@@ -1,96 +1,118 @@
 package org.htw.prog2.aufgabe1.readers;
 
+import com.sun.jdi.DoubleValue;
 import org.htw.prog2.aufgabe1.exceptions.FileFormatException;
-import org.htw.prog2.aufgabe1.files.MutationFile;
 import org.htw.prog2.aufgabe1.files.Mutation;
+import org.htw.prog2.aufgabe1.files.MutationFile;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.LinkedList;
-import java.util.List;
 
-public class CSVFileReader implements MutationFileReader {
+import java.util.*;
 
-    public MutationFile readFile(String filename) throws IOException, FileFormatException {
-        MutationFile res = new MutationFile();
-        BufferedReader reader = new BufferedReader(new FileReader(filename));
-        String line;
-        boolean firstLine = true;
-        while ((line = reader.readLine()) != null) {
-            // Ignore empty lines
-            if(line.strip().length() == 0) {
-                continue;
-            }
-            // Ignore lines starting with #
-            if(line.charAt(0) == '#')
-                continue;
-            if(line.startsWith("\"Mutation Patterns\"")) {
-                for(String drug : parseDrugs(line)) {
-                    res.addDrug(drug);
+public class CSVFileReader implements MutationFileReader{
+
+
+
+
+    public static List<String> parseDrugs(String definitionLine) throws FileFormatException {
+        List<String> drugList = new ArrayList<>();
+        String definitionTemplate = "\"Mutation Patterns\";\"Number of Sequences\"";
+
+        if (!definitionLine.startsWith(definitionTemplate)) {
+
+            throw new FileFormatException("Falsches Format");
+        }
+        else {
+
+            String[] lineAsArray = (definitionLine.split(";"));
+
+            for (int i = 2; i < lineAsArray.length; i++) {
+
+                if(lineAsArray[i].split(" ").length != 2){
+                    throw new FileFormatException("Drug name ist falsch formatiert");
                 }
-                firstLine = false;
+                else {
+
+                    drugList.add(lineAsArray[i].replace("\"", "").split(" ")[0]);
+                }
+            }
+
+
+            return drugList;
+        }
+    }
+
+    @Override
+    public MutationFile readFile(String filename) throws IOException, FileFormatException {
+
+        MutationFile mutationFile = new MutationFile();
+
+
+
+        HashMap<String,Double> resistances = new HashMap<>();
+
+        boolean secondLineisDefinition = false;
+        int lengthOfDefinitionLine = 0;
+
+        BufferedReader in;
+        in = new BufferedReader(new FileReader(filename));
+        String line;
+
+        while ((line = in.readLine()) != null) {
+
+            if(line.startsWith("#")){
                 continue;
             }
-            // If this happens, then the first line was not a definition line.
-            if(firstLine) {
-                throw new FileFormatException("The first line of the mutation patterns CSV file must be a definition line.");
+
+            if(line.contains("\"Mutation")) {
+
+                parseDrugs(line).forEach(drug -> mutationFile.addDrug(drug));
+
+
+                lengthOfDefinitionLine = (line.split(";")).length;
+                secondLineisDefinition = true;
+
             }
-            String[] data = line.split(";");
-            if(2 + res.getDrugs().size() != data.length) {
-                throw new FileFormatException("Each line must have the same number of columns.");
-            }
-            if(data.length < 3)
-                continue;
-            else {
-                String pattern = data[0];
-                HashMap<String, Double> sus = parseSusceptibilities(data, res.getDrugs());
-                res.addMutation(new Mutation(pattern, sus));
+
+            else{
+                if(line.split(";").length != lengthOfDefinitionLine) {
+                    throw new FileFormatException("All lines in a CSV file must have the same number of elements.");
+                }
+                else{
+                    LinkedList<String> drugs = mutationFile.getDrugs();
+                    String[] lineParts = line.split(";");
+
+                    for(int i = 2; i< lineParts.length; i++){
+                        String raw = lineParts[i].replace('\u00A0', ' ').trim();
+                        if (!raw.isEmpty()) {
+                            resistances.put(drugs.get(i - 2), Double.parseDouble(raw));
+                        }
+                    }
+                    Mutation mutation = new Mutation(lineParts[0], resistances);
+                    resistances = new HashMap<>();
+                    mutationFile.addMutation(mutation);
+
+                    if(!secondLineisDefinition){
+                        throw new FileFormatException("First line of mutation pattern CSV file must be a header.");
+                    }
+
+                }
             }
         }
-        return res;
+
+
+
+
+
+
+
+        return mutationFile;
     }
 
-    /**
-     * Parst die Definitionszeile.
-     * @param line Definitionszeile aus der CSV-Datei
-     * @return Liste der Medikamentennamen aus der Definitionszeile
-     */
-    public static List<String> parseDrugs(String line) throws FileFormatException {
-        LinkedList<String> res = new LinkedList<>();
-        String[] data = line.split(";");
-        if(!data[0].equals("\"Mutation Patterns\"") || !data[1].equals("\"Number of Sequences\"")) {
-            throw new FileFormatException("First elements of definition line should be \"Mutation Patterns\" and " +
-                    "\"Number of Sequences\"");
-        }
-        for(int i=2; i<data.length; i++) {
-            String drug = data[i];
-            if(!drug.endsWith(" foldn\"")) {
-                throw new FileFormatException("All drug definitions in first line must end with \"foldn\"\".");
-            }
-            // Der Medikamentenname steht vor dem Leerzeichen und hinter dem Anführungszeichen -
-            // raussplitten und speichern.
-            res.add(drug.split(" ")[0].split("\"")[1]);
-        }
-        return res;
-    }
-
-    public static HashMap<String, Double> parseSusceptibilities(String[] data, List<String> drugs) {
-        HashMap<String, Double> res = new HashMap<>();
-        for(int i = 2; i< data.length; i++) {
-            String drug = drugs.get(i-2);
-            try {
-                res.put(drug, Double.parseDouble(data[i]));
-            } catch(NumberFormatException e) {
-                res.put(drug, -1d);
-            }
-        }
-        return res;
-    }
-
+    @Override
     public boolean canReadFile(String filename) {
-        // Any text file could theoretically be a CSV file. Extend this in case further formats come in.
-        return true;
+        return filename.endsWith(".csv");
     }
 }

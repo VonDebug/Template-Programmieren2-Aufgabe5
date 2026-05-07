@@ -1,28 +1,39 @@
 package org.htw.prog2.aufgabe1.files;
 
+import java.util.ArrayList;
 import java.util.LinkedList;
 
-public class MutationFile implements HIVFile {
-    LinkedList<String> drugs = new LinkedList<>();
-    LinkedList<Mutation> mutations = new LinkedList<>();
+public class MutationFile implements HIVFile{
 
-    public void addDrug(String drug) {
-        drugs.add(drug);
+    ArrayList<String> drugList = new ArrayList<>();
+    ArrayList<Mutation>mutations = new ArrayList<>();
+
+    public MutationFile(){
+
     }
 
-    public LinkedList<String> getDrugs() {
-        return drugs;
+
+    public void addDrug(String drug){
+        drugList.add(drug);
     }
 
-    public void addMutation(Mutation variant) {
-        mutations.add(variant);
+    public LinkedList<String> getDrugs(){
+
+        return new LinkedList<>(drugList);
     }
 
-    public LinkedList<Mutation> getMutations() {
-        return mutations;
+    public void addMutation(Mutation mutation){
+        mutations.add(mutation);
     }
 
-    public int getNumberOfMutations() {
+    public LinkedList<Mutation> getMutations(){
+
+        return new LinkedList<>(mutations);
+    }
+
+    public int getNumberOfMutations(){
+
         return mutations.size();
     }
+
 }

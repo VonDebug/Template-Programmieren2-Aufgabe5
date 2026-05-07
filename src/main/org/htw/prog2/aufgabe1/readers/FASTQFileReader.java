@@ -4,92 +4,82 @@ import org.htw.prog2.aufgabe1.exceptions.FileFormatException;
 import org.htw.prog2.aufgabe1.files.SequenceFile;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 
-public class FASTQFileReader implements SequenceFileReader {
+public class FASTQFileReader implements SequenceFileReader{
 
-    private enum SeqState {
-        HEADER,
-        SEQUENCE,
-        SEPARATOR,
-        QUALITIES
-    }
 
-    /**
-     * Reads the specified FASTA file.
-     */
+
+    @Override
     public SequenceFile readFile(String filename) throws IOException, FileFormatException {
-        SequenceFile res = new SequenceFile();
-        File infile = new File(filename);
-        BufferedReader reader = new BufferedReader(new FileReader(infile));
-        StringBuilder seq = new StringBuilder();
-        String line = reader.readLine();
-        if(line.charAt(0) != '@') {
-            throw new FileFormatException("FASTQ File does not start with sequence header line.");
-        }
-        SeqState state = SeqState.SEQUENCE;
-        while((line = reader.readLine()) != null) {
-            if(line.charAt(0) == '@' && state == SeqState.HEADER) {
-                // This can only happen if two sequence headers directly follow each other. This is not valid.
-                if(seq.length() == 0) {
+
+        SequenceFile sequenceFile = new SequenceFile();
+        boolean lasttLineWasHeader = false;
+        boolean lastLineWasQuality = false;
+        StringBuilder string = new StringBuilder();
+
+
+
+        BufferedReader in;
+        in = new BufferedReader(new FileReader(filename));
+        String line;
+        int lineCounter = 0;
+
+        while ((line = in.readLine()) != null) {
+            lineCounter++;
+
+
+            if(line.startsWith("@")) {
+                lastLineWasQuality = false;
+
+                if(lasttLineWasHeader){
                     throw new FileFormatException("Two header lines are directly following each other.");
+
                 }
-                res.addSequence(seq.toString());
-                seq = new StringBuilder();
-                state = SeqState.SEQUENCE;
+
+                lasttLineWasHeader = true;
             }
-            else if(state == SeqState.SEQUENCE){
-                seq.append(line.strip());
-                state = SeqState.SEPARATOR;
+
+
+            else if(!(line.startsWith("@")) && lineCounter==1){
+                throw new FileFormatException("FASTQ File does not start with sequence header line.");
             }
-            else if(state == SeqState.SEPARATOR){
-                if(!line.startsWith("+")) {
-                    throw new FileFormatException("Sequence and qualities must be separated by a line starting with +");
+
+            else if(line.startsWith("+")){
+                lastLineWasQuality = true;
+                sequenceFile.addSequence(string.toString());
+                string.setLength(0);
+            }
+
+            else {
+                if (lasttLineWasHeader) {
+                    string.append(line);
+                    lasttLineWasHeader = false;
                 }
-                state = SeqState.QUALITIES;
+                else if(string.length()!=0 && !lastLineWasQuality){
+                    string.append(line);
+                }
             }
-            else if(state == SeqState.QUALITIES) {
-                state = SeqState.HEADER;
-            }
+
         }
-        // This would be the case if the last line in the file was a sequence header. This is not valid.
-        if(seq.length() == 0) {
+        if(string.length() == 0 && lasttLineWasHeader) {
             throw new FileFormatException("The last line is a sequence header.");
         }
-        res.addSequence(seq.toString());
-        return res;
+
+        return sequenceFile;
+
     }
 
+    @Override
     public boolean canReadFile(String filename) {
-        try {
-            File infile = new File(filename);
-            BufferedReader reader = new BufferedReader(new FileReader(infile));
-            String line = reader.readLine().strip();
-            // FASTQ files have to start with a sequence header
-            if(!line.startsWith("@") || line.length() < 2) {
-                return false;
-            }
-            line = reader.readLine().strip();
-            // The header has to be followed by a non-empty sequence line
-            if(!line.matches("[a-zA-Z]+")) {
-                return false;
-            }
-            int seqlength = line.length();
-            line = reader.readLine().strip();
-            // The sequence line has to be followed by a line starting with +
-            if(!line.startsWith("+")) {
-                return false;
-            }
-            line = reader.readLine().strip();
-            // The quality line length has to have the same length as the sequence line length
-            if(line.length() != seqlength) {
-                return false;
-            }
-        } catch(Exception e) {
-            return false;
-        }
-        return true;
+
+        return filename.endsWith(".fastq");
+
     }
+
+
+
+
+
 }

@@ -2,23 +2,30 @@ package org.htw.prog2.aufgabe1.readers;
 
 import org.htw.prog2.aufgabe1.exceptions.NoValidReadersException;
 
-import java.util.LinkedList;
+import java.util.ArrayList;
+import java.util.List;
 
-public class ReaderManager<T extends HIVFileReader> {
-    private LinkedList<T> readers = new LinkedList<>();
+public class ReaderManager <T extends HIVFileReader> {
 
-    public void addReader(T reader) {
+    private final List<T> readers = new ArrayList<>();
+
+    public void addReader(T reader){
+
         readers.add(reader);
+
+
     }
 
-    public T getReaderForFile(String filename) throws NoValidReadersException {
-        for(T reader : readers) {
-            try {
-                if(reader.canReadFile(filename)) {
-                    return reader;
-                }
-            } catch(Exception e) { }
-        }
-        throw new NoValidReadersException("Cannot read format of file " + filename);
+    public T getReaderForFile(String filename)throws NoValidReadersException {
+
+        for (T fileReader : readers) {
+            if(fileReader.canReadFile(filename)){
+                return fileReader;
+            }
+
+        }throw new NoValidReadersException("Kein Reader entdeckt");
+
     }
+
 }
+
