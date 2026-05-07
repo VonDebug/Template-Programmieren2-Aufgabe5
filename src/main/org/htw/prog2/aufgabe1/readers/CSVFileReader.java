@@ -1,6 +1,6 @@
 package org.htw.prog2.aufgabe1.readers;
 
-import com.sun.jdi.DoubleValue;
+
 import org.htw.prog2.aufgabe1.exceptions.FileFormatException;
 import org.htw.prog2.aufgabe1.files.Mutation;
 import org.htw.prog2.aufgabe1.files.MutationFile;
