@@ -29,16 +29,6 @@ public class SequenceAnalysisManager {
 
             FullLengthSequenceAnalysis fullLengthSequenceAnalysis = new FullLengthSequenceAnalysis(referencefile.getFirstSequence(), patientseqs, patterns);
             fullLengthSequenceAnalysis.determineBestDrug();
-            double bestDrugResistance = fullLengthSequenceAnalysis.getBestDrugResistance();
-            String BestDrug = fullLengthSequenceAnalysis.getBestDrug();
-
-
-            System.out.println("Eingelesene Mutationen: " + patterns.getNumberOfMutations());
-            System.out.println("Länge der eingelesenen Referenzsequenz: " +
-                    referencefile.getFirstSequence().length() + " Aminosäuren");
-            System.out.println("Anzahl der eingelesenen Patientensequenzen: " +
-                    patientseqs.getNumberOfSequences());
-            System.out.println("Das beste Medikament ist: " + BestDrug + " mit einer Resistenz von: " + bestDrugResistance);
 
             return fullLengthSequenceAnalysis;
 
